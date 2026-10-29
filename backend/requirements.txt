@@ -1,0 +1,9 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.38
+psycopg[binary]==3.2.5
+pydantic-settings==2.7.1
+sudachipy==0.6.10
+sudachidict_core==20250129
+beautifulsoup4==4.13.3
+httpx==0.28.1
