@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, String, Date, Text, JSON, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker, Session
 from pydantic import BaseModel, HttpUrl
 from pydantic_settings import BaseSettings
-from .nlp import analyze_text, translate_to_vietnamese
+from .nlp import analyze_text, grammar_details, translate_to_vietnamese, vocabulary_meaning
 from .scraper import fetch_article
 
 class Settings(BaseSettings):
@@ -75,6 +75,12 @@ def get_article(article_id:int, db:Session=Depends(get_db)):
     if not a: raise HTTPException(404,"Article not found")
     sentences = a.sentences or analyze_text(a.body)
     for sentence in sentences:
+        for token in sentence.get("tokens", []):
+            if not token.get("meaning") or token.get("meaning") == "辞書データ未接続":
+                token["meaning"] = vocabulary_meaning(token)
+        for point in sentence.get("grammar", []):
+            for key, value in grammar_details(point.get("pattern", "")).items():
+                point.setdefault(key, value)
         if not sentence.get("translation_vi"):
             sentence["translation_vi"] = translate_to_vietnamese(sentence.get("text", ""))
     return {"id":a.id,"title":a.title,"published_at":a.published_at,"body":a.body,"image_url":a.image_url,"source_url":a.source_url,"level":a.level,"sentences":sentences}

@@ -1,14 +1,18 @@
 # ことば (Kotoba) — Japanese Reading Practice MVP
 
-A decoupled Next.js 14 App Router frontend and FastAPI backend for reading Japanese stories. The interface includes a reading library, furigana toggle, sentence-by-sentence Vietnamese translations, sentence study panel, browser text-to-speech, and a basic save-word interaction. The API stores stories and sentence analysis in PostgreSQL.
+A decoupled Next.js 14 App Router frontend and FastAPI backend for reading Japanese stories. The interface includes a reading library and a full-screen, three-column reader: article text, sentence vocabulary with Vietnamese meanings, grammar, and a related Kanji or selected-grammar detail panel. Selecting a grammar point shows its structure, usage, and bilingual examples. It also has furigana and Vietnamese translation toggles, browser text-to-speech, and a basic save-word interaction. The API stores stories and sentence analysis in PostgreSQL.
 
 ## Run with Docker Compose
 
-From this directory:
+From this directory, start the development containers once:
 
 ```sh
 docker compose up --build
 ```
+
+The frontend and backend source folders are bind-mounted into their containers. Saving a frontend file triggers Next.js Fast Refresh; saving a Python file restarts FastAPI automatically. Keep this command running while developing. The watcher uses polling so file changes are also detected by Docker Desktop on macOS/Windows.
+
+When you change Python dependencies in `backend/requirements.txt`, rebuild the backend image with `docker compose up --build backend`. When you change frontend dependencies in `frontend/package.json`, run `docker compose exec frontend npm install` and restart the frontend container. The named Node modules and Next.js cache volumes are separate from the source bind mount.
 
 - Web app: http://localhost:3000
 - API docs: http://localhost:8000/docs
@@ -52,7 +56,7 @@ Open `/admin/sources` to configure crawl sources. The current scraper expects a 
 
 - `backend/app/scraper.py` contains an NHK Easy page fetch/extraction function for title, body, date, image, and source URL. Site markup can change; inspect and test the selectors against permitted pages before production crawling. Respect the source's terms, robots policy, and request limits.
 - `backend/app/nlp.py` tokenizes with SudachiPy and attaches Vietnamese translations to each sentence. The bundled example articles have curated sample translations. For other content, configure a LibreTranslate-compatible Japanese-to-Vietnamese endpoint with `LIBRETRANSLATE_URL` (and optionally `LIBRETRANSLATE_API_KEY`) in the environment before starting Docker Compose. If no service is configured or it fails, the API returns an explicit “translation not configured” message for that sentence.
-- If SudachiPy is unavailable, tokenization falls back to a coarse regex tokenizer. Grammar notes are deliberately rule-based starter explanations; lexical meanings currently say “dictionary data not connected.” Add a licensed dictionary/curated lexicon and reviewed grammar content (or an LLM service) before treating explanations as authoritative.
+- If SudachiPy is unavailable, tokenization falls back to a coarse regex tokenizer. Grammar notes are deliberately rule-based starter explanations; vocabulary meanings use a small Vietnamese starter dictionary and show a clear fallback for words it does not cover. Add a licensed dictionary/curated lexicon and reviewed grammar content (or an LLM service) before treating explanations as authoritative.
 - Furigana in the demo reader uses a small local reading map for sample words. For broad article coverage, create ruby spans from analyzer readings and validate ambiguity/okurigana before rendering.
 - TTS uses the browser's Japanese speech synthesis voice when available. Save-word currently demonstrates the UI state; persistent user accounts and wordbook storage are outside this MVP.
 
@@ -63,3 +67,7 @@ backend/  FastAPI API, SQLAlchemy model, Sudachi NLP, scraper
 frontend/ Next.js 14, TypeScript, Tailwind, reader UI
 docker-compose.yml
 ```
+
+## Kanji stroke order data
+
+The Kanji detail panel loads each character's SVG stroke paths from the [KanjiVG repository](https://github.com/KanjiVG/kanjivg) through a small Next.js route, then reveals the strokes in order with playback and step controls. This feature needs network access to GitHub when a character is first requested. KanjiVG is licensed under Creative Commons Attribution-Share Alike 3.0; the viewer displays the attribution beside the stroke diagram.
